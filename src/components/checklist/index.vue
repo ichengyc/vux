@@ -1,13 +1,13 @@
 <template>
-  <div class="weui_cells_title">{{title}}</div>
+  <div v-show="title" class="weui_cells_title">{{title}}</div>
   <div class="weui_cells weui_cells_checkbox">
-    <label class="weui_cell weui_check_label" for="checkbox_{{uuid}}_{{index}}" v-for="(index,one) in options">
+    <label class="weui_cell weui_check_label" for="checkbox_{{uuid}}_{{index}}" v-for="(index, one) in options">
       <div class="weui_cell_hd">
         <input type="checkbox" class="weui_check" value="{{one | getKey}}" v-model="value" id="checkbox_{{uuid}}_{{index}}">
         <i class="weui_icon_checked"></i>
       </div>
       <div class="weui_cell_bd weui_cell_primary">
-        <p>{{one | getValue}}</p>
+        <p v-html="one | getValue"></p>
       </div>
     </label>
   </div>
@@ -32,10 +32,7 @@ export default {
   },
   mixins: [Base],
   props: {
-    title: {
-      type: String,
-      required: true
-    },
+    title: String,
     required: {
       type: Boolean,
       default: true
@@ -46,7 +43,7 @@ export default {
     },
     value: {
       type: Array,
-      twoWay: true
+      default: () => []
     },
     max: Number,
     min: Number,
@@ -114,8 +111,14 @@ export default {
 }
 </script>
 
-<style>
+<style lang="less">
+@import '../../styles/weui/widget/weui_cell/weui_cell_global';
+@import '../../styles/weui/widget/weui_cell/weui_check';
+
 .weui_cells_checkbox > label > * {
   pointer-events: none;
+}
+.weui_cells > a {
+  color:#000;
 }
 </style>

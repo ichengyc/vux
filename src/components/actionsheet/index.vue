@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="vux-actionsheet">
     <div class="weui_mask_transition" :class="{'weui_fade_toggle': show}" :style="{display: show ? 'block' : 'none'}" @click="show=false"></div>
     <div class="weui_actionsheet" :class="{'weui_actionsheet_toggle': show}">
       <div class="weui_actionsheet_menu">
@@ -14,24 +14,19 @@
 
 <script>
 export default {
+  ready () {
+    this.$tabbar = document.querySelector('.weui_tabbar')
+  },
   props: {
-    show: {
-      type: Boolean,
-      required: true,
-      default: false,
-      twoWay: true
-    },
-    showCancel: {
-      type: Boolean,
-      default: false
-    },
+    show: Boolean,
+    showCancel: Boolean,
     cancelText: {
       type: String,
       default: 'cancel'
     },
     menus: {
       type: Object,
-      default: {}
+      default: () => {}
     }
   },
   methods: {
@@ -41,12 +36,34 @@ export default {
         this.$emit(`${event}-${menu}`)
         this.show = false
       }
+    },
+    fixIos (zIndex) {
+      if (this.$tabbar && /iphone/i.test(navigator.userAgent)) {
+        this.$tabbar.style.zIndex = zIndex
+      }
     }
+  },
+  watch: {
+    show (val) {
+      if (val) {
+        this.fixIos(-1)
+      } else {
+        setTimeout(() => {
+          this.fixIos(100)
+        }, 200)
+      }
+    }
+  },
+  beforeDestroy () {
+    this.fixIos(100)
   }
 }
 </script>
 
-<style>
+<style lang="less">
+@import '../../styles/weui/widget/weui_tips/weui_mask';
+@import '../../styles/weui/widget/weui_tips/weui_actionsheet';
+
 .vux-actionsheet-gap {
   height: 8px;
   width: 100%;

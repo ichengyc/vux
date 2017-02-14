@@ -9,13 +9,14 @@ import Popup from './popup'
 
 export default {
   props: {
-    show: {
-      type: Boolean,
-      twoWay: true
-    },
+    show: Boolean,
     height: {
       type: String,
       default: 'auto'
+    },
+    hideOnBlur: {
+      type: Boolean,
+      default: true
     }
   },
   ready () {
@@ -23,13 +24,15 @@ export default {
     this.popup = new Popup({
       container: _this.$el,
       innerHTML: '',
+      hideOnBlur: _this.hideOnBlur,
       onOpen (dialog) {
         _this.fixSafariOverflowScrolling('auto')
         _this.show = true
       },
       onClose (dialog) {
-        _this.fixSafariOverflowScrolling('touch')
         _this.show = false
+        if (Object.keys(window.__$vuxPopups).length >= 1) return
+        _this.fixSafariOverflowScrolling('touch')
       }
     })
     this.$overflowScrollingList = document.querySelectorAll('.vux-fix-safari-overflow-scrolling')
@@ -41,6 +44,7 @@ export default {
     */
     fixSafariOverflowScrolling (type) {
       if (!this.$overflowScrollingList.length) return
+      if (!/iphone/i.test(navigator.userAgent)) return
       for (let i = 0; i < this.$overflowScrollingList.length; i++) {
         this.$overflowScrollingList[i].style.webkitOverflowScrolling = type
       }
@@ -69,6 +73,7 @@ export default {
   },
   beforeDestroy () {
     this.popup.destroy()
+    this.fixSafariOverflowScrolling('touch')
   }
 }
 </script>
@@ -102,10 +107,10 @@ export default {
 .vux-popup-mask.vux-popup-show {
   opacity: 1;
   z-index: 100;
+  transition: opacity 0.3s;
 }
 .vux-popup-transiton {}
 .vux-popup-enter {
-  background-color:red;
   transform: translate3d(0, 100%, 0);
 }
 .vux-popup-leave {

@@ -1,7 +1,20 @@
 <template>
   <div class="weui_cell">
     <div class="weui_cell_bd weui_cell_primary">
-      <textarea class="weui_textarea" placeholder="{{placeholder}}" :rows="rows" :cols="cols" v-model="value" :style="textareaStyle" :maxlength="max"></textarea>
+      <textarea
+      class="weui_textarea"
+      :autocomplete="autocomplete"
+      :autocapitalize="autocapitalize"
+      :autocorrect="autocorrect"
+      :spellcheck="spellcheck"
+      :placeholder="placeholder"
+      :readonly="readonly"
+      :name="name"
+      :rows="rows"
+      :cols="cols"
+      v-model="value"
+      :style="textareaStyle"
+      :maxlength="max" v-el:textarea></textarea>
       <div class="weui_textarea_counter" v-show="showCounter && max"><span>{{count}}</span>/{{max}}</div>
     </div>
   </div>
@@ -20,12 +33,13 @@ export default {
     max: Number,
     value: {
       type: String,
-      default: '',
-      twoWay: true
-    },
-    placeholder: {
-      type: String,
       default: ''
+    },
+    name: String,
+    placeholder: String,
+    readonly: {
+      type: Boolean,
+      default: false
     },
     rows: {
       type: Number,
@@ -35,7 +49,12 @@ export default {
       type: Number,
       default: 30
     },
-    height: Number
+    height: Number,
+    // https://github.com/yisibl/blog/issues/3
+    autocomplete: 'off',
+    autocapitalize: 'off',
+    autocorrect: 'off',
+    spellcheck: 'false'
   },
   watch: {
     value (newVal) {
@@ -47,7 +66,11 @@ export default {
   },
   computed: {
     count () {
-      return this.value.length
+      let len = 0
+      if (this.value) {
+        len = this.value.replace(/\n/g, 'aa').length
+      }
+      return len > this.max ? this.max : len
     },
     textareaStyle () {
       if (this.height) {
@@ -59,3 +82,8 @@ export default {
   }
 }
 </script>
+
+<style lang="less">
+@import '../../styles/weui/widget/weui_cell/weui_cell_global';
+@import '../../styles/weui/widget/weui_cell/weui_form/weui_form_common';
+</style>

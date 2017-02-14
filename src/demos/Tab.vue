@@ -26,10 +26,19 @@
     <br/>
     <br/>
     <br/>
+    <divider>disabled</divider>
+    <tab>
+      <tab-item :selected="demoDisabled === 'A'" @click="demoDisabled = 'A'">A</tab-item>
+      <tab-item :selected="demoDisabled === 'B'" @click="demoDisabled = 'B'">B</tab-item>
+      <tab-item :selected="demoDisabled === 'Disabled'" disabled style="color:#ececec;">Disabled</tab-item>
+    </tab>
+    <br/>
+    <br/>
+    <br/>
     <tab :line-width=2 active-color='#fc378c' :index.sync="index">
       <tab-item class="vux-center" :selected="demo2 === item" v-for="item in list2" @click="demo2 = item">{{item}}</tab-item>
     </tab>
-    <swiper :index.sync="index">
+    <swiper :index.sync="index" height="100px" :show-dots="false">
       <swiper-item v-for="item in list2">
         <div class="tab-swiper vux-center">{{item}} Container</div>
       </swiper-item>
@@ -134,6 +143,7 @@ export default {
       list4: ['正在正映', '即将上映'],
       demo4: '即将上映',
       demo6: '未发货',
+      demoDisabled: 'A',
       index: 0
     }
   },
@@ -166,7 +176,8 @@ export default {
 }
 </script>
 
-<style>
+<style lang="less">
+@import '../styles/1px.less';
 .active-6-1 {
   color: rgb(252, 55, 140) !important;
   border-color: rgb(252, 55, 140) !important;

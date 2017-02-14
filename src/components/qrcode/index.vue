@@ -2,7 +2,7 @@
   <canvas
   :style="{height: size, width: size}"
   :height="size"
-  width="size"></canvas>
+  :width="size"></canvas>
 </template>
 
 <script>
@@ -11,10 +11,7 @@ import ErrorCorrectLevel from 'qr.js/lib/ErrorCorrectLevel'
 
 export default {
   props: {
-    value: {
-      type: String,
-      required: true
-    },
+    value: String,
     size: {
       type: Number,
       default: 80

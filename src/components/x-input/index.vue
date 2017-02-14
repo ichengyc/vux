@@ -1,18 +1,32 @@
 <template>
 	<div class="weui_cell" :class="{'weui_cell_warn': !valid}">
     <div class="weui_cell_hd">
-      <label class="weui_label" :style="{width: labelWidth + 'em'}" v-if="title">{{title}}</label>
+      <label class="weui_label" :style="{width: $parent.labelWidth || (labelWidth + 'em'), textAlign: $parent.labelAlign, marginRight: $parent.labelMarginRight}" v-if="title">{{title}}</label>
       <inline-desc v-if="inlineDesc">{{inlineDesc}}</inline-desc>
     </div>
     <div class="weui_cell_bd weui_cell_primary">
-      <input class="weui_input" :style="inputStyle" :type="type" :pattern="pattern" placeholder="{{placeholder}}" v-model="value" :readonly="readonly" @blur="blur" v-el:input/>
+      <input
+      class="weui_input"
+      :autocomplete="autocomplete"
+      :autocapitalize="autocapitalize"
+      :autocorrect="autocorrect"
+      :spellcheck="spellcheck"
+      :style="inputStyle"
+      :type="type"
+      :name="name"
+      :pattern="pattern"
+      :placeholder="placeholder"
+      :readonly="readonly"
+      v-model="value"
+      @blur="blur"
+      v-el:input/>
     </div>
     <div class="weui_cell_ft">
-      <icon type="clear" v-show="showClear && value" @click="clear"></icon>
-      <icon type="warn" title="{{!valid ? firstError : ''}}" v-show="!equalWith && ((touched && !valid && firstError) || (forceShowError && !valid && firstError))"></icon>
-      <icon type="warn" v-show="hasLengthEqual && dirty && equalWith && !valid"></icon>
+      <icon type="clear" v-show="showClear && value && !readonly" @click="clear"></icon>
+      <icon class="vux-input-icon-warn" type="warn" title="{{!valid ? firstError : ''}}" v-show="!equalWith && ((touched && !valid && firstError) || (forceShowError && !valid && firstError))"></icon>
+      <icon class="vux-input-icon-warn" type="warn" v-show="hasLengthEqual && dirty && equalWith && !valid"></icon>
       <icon type="success" v-show="equalWith && equalWith===value && valid"></icon>
-      <slot name="right"><slot>
+      <slot name="right"></slot>
     </div>
   </div>
 </template>
@@ -45,7 +59,7 @@ const validators = {
 }
 export default {
   ready () {
-    if (!this.title && !this.placeholder) {
+    if (!this.title && !this.placeholder && !this.value) {
       console.warn('no title and no placeholder?')
     }
     if (this.equalWith) {
@@ -69,11 +83,8 @@ export default {
       default: ''
     },
     placeholder: String,
-    value: {
-      type: String,
-      default: '',
-      twoWay: true
-    },
+    value: [String, Number],
+    name: String,
     readonly: {
       type: Boolean,
       default: false
@@ -92,7 +103,12 @@ export default {
       type: String,
       default: 'text'
     },
-    textAlign: String
+    textAlign: String,
+    // https://github.com/yisibl/blog/issues/3
+    autocomplete: 'off',
+    autocapitalize: 'off',
+    autocorrect: 'off',
+    spellcheck: 'false'
   },
   computed: {
     pattern () {
@@ -160,6 +176,7 @@ export default {
         if (this.value.length < this.min) {
           this.errors.min = this.$interpolate('最少应该输入{{min}}个字符哦')
           this.valid = false
+          this.getError()
           return
         } else {
           delete this.errors.min
@@ -224,3 +241,13 @@ export default {
   }
 }
 </script>
+
+<style lang="less">
+@import '../../styles/weui/widget/weui_cell/weui_access';
+@import '../../styles/weui/widget/weui_cell/weui_cell_global';
+@import '../../styles/weui/widget/weui_cell/weui_form/weui_form_common';
+@import '../../styles/weui/widget/weui_cell/weui_form/weui_vcode';
+.vux-input-icon-warn.weui_icon_warn:before {
+  font-size: 21px;
+}
+</style>

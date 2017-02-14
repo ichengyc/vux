@@ -6,19 +6,19 @@
     </group>
 
     <group title="不显示清除按钮">
-      <x-input title="message" placeholder="I'm placeholder" :show-clear="false"></x-input>
+      <x-input title="message" placeholder="I'm placeholder" :show-clear="false" autocapitalize="characters"></x-input>
     </group>
 
     <group title="set is-type=china-name">
-      <x-input title="姓名" placeholder="请输入姓名" is-type="china-name"></x-input>
+      <x-input title="姓名" name="username" placeholder="请输入姓名" is-type="china-name"></x-input>
     </group>
 
     <group title="set keyboard=number and is-type=china-mobile">
-      <x-input title="手机号码" placeholder="请输入手机号码" keyboard="number" is-type="china-mobile"></x-input>
+      <x-input title="手机号码" name="mobile" placeholder="请输入手机号码" keyboard="number" is-type="china-mobile"></x-input>
     </group>
 
     <group title="set is-type=email">
-      <x-input title="邮箱" placeholder="请输入邮箱地址" is-type="email"></x-input>
+      <x-input title="邮箱" name="email" placeholder="请输入邮箱地址" is-type="email"></x-input>
     </group>
 
     <group title="set min=2 and max=5">

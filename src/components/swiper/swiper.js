@@ -1,3 +1,6 @@
+import arrayFrom from 'array-from'
+import objectAssign from 'object-assign'
+
 class Swiper {
   constructor (options) {
     this._default = {
@@ -8,27 +11,30 @@ class Swiper {
       threshold: 50,
       duration: 300,
       auto: false,
+      loop: false,
       interval: 3000,
       height: 'auto',
       minMovingDistance: 0
     }
-    this._options = extend(this._default, options)
+    this._options = objectAssign(this._default, options)
     this._options.height = this._options.height.replace('px', '')
     this._start = {}
     this._move = {}
     this._end = {}
     this._eventHandlers = {}
-    this._prev = this._current = this._offset = this._goto = 0
+    this._prev = this._current = this._goto = 0
+    this._width = this._height = this._distance = 0
+    this._offset = []
     this.$box = this._options.container
     this.$container = this._options.container.querySelector('.vux-swiper')
     this.$items = this.$container.querySelectorAll(this._options.item)
     this.count = this.$items.length
+    this.realCount = this.$items.length // real items length
+    this._position = [] // used by go event
+    this._firstItemIndex = 0
     if (!this.count) {
       return
     }
-
-    this.timer = null
-    this.updateItemWidth()
     this._init()
     this._auto()
     this._bind()
@@ -37,9 +43,9 @@ class Swiper {
   }
 
   _auto () {
-    let me = this
+    const me = this
     me.stop()
-    if (this._options.auto) {
+    if (me._options.auto) {
       me.timer = setTimeout(() => {
         me.next()
       }, me._options.interval)
@@ -48,91 +54,119 @@ class Swiper {
 
   updateItemWidth () {
     this._width = this.$box.offsetWidth
-  }
-
-  setStyle () {
-    this._height = this._options.height === 'auto' ? 'auto' : this._options.height
-    let width = this._width
-    let height = this._height
-
-    let w = width
-    let h = height * this.count
-
-    if (this._options.direction === 'horizontal') {
-      w = width * this.count
-      h = height
-    }
-
-    if (this._options.direction === 'vertical') {
-      h = height * this.count
-      this.$box.style.height = height + 'px'
-    }
-
-    this.$container.style.width = w + 'px'
-    if (h > 0) {
-      this.$container.style.height = h + 'px'
-    }
-
-    Array.prototype.forEach.call(this.$items, ($item, key) => {
-      $item.style.width = width + 'px'
-      if (height > 0) {
-        $item.style.height = height + 'px'
-      }
-    })
-  }
-
-  _onResize () {
-    this.resizeHandler = () => {
-      setTimeout(() => {
-        this.updateItemWidth()
-        this.setStyle()
-        this.next()
-      }, 100)
-    }
-    window.addEventListener('orientationchange', this.resizeHandler, false)
+    this._distance = this._options.direction === 'horizontal' ? this._width : this._height
   }
 
   stop () {
     this.timer && clearTimeout(this.timer)
   }
 
+  _loop () {
+    return this._options.loop && this.realCount >= 3
+  }
+
+  _onResize () {
+    const me = this
+    this.resizeHandler = () => {
+      setTimeout(() => {
+        me.updateItemWidth()
+        me._setOffset()
+        me._setTransfrom()
+      }, 100)
+    }
+    window.addEventListener('orientationchange', this.resizeHandler, false)
+  }
+
   _init () {
-    this.setStyle()
+    if (this._options.loop) {
+      this._loopTwoItems()
+    }
+    this._height = this._options.height === 'auto' ? 'auto' : this._options.height - 0
+    this.updateItemWidth()
+    this._initPosition()
     this._activate(this._current)
+    this._setOffset()
+    this._setTransfrom()
+    if (this._loop()) {
+      this._loopRender()
+    }
+  }
+
+  _initPosition () {
+    for (let i = 0; i < this.realCount; i++) {
+      this._position.push(i)
+    }
+  }
+
+  _movePosition (position) {
+    const me = this
+    if (position > 0) {
+      let firstIndex = me._position.splice(0, 1)
+      me._position.push(firstIndex[0])
+    } else if (position < 0) {
+      let lastIndex = me._position.pop()
+      me._position.unshift(lastIndex)
+    }
+  }
+
+  _setOffset () {
+    let me = this
+    let index = me._position.indexOf(me._current)
+    me._offset = []
+    arrayFrom(me.$items).forEach(function ($item, key) {
+      me._offset.push((key - index) * me._distance)
+    })
+  }
+
+  _setTransition (duration) {
+    duration = duration || (this._options.duration || 'none')
+    let transition = duration === 'none' ? 'none' : duration + 'ms'
+    arrayFrom(this.$items).forEach(function ($item, key) {
+      $item.style.webkitTransition = transition
+      $item.style.transition = transition
+    })
+  }
+
+  _setTransfrom (offset) {
+    const me = this
+    offset = offset || 0
+    arrayFrom(me.$items).forEach(function ($item, key) {
+      let distance = me._offset[key] + offset
+      let transform = `translate3d(${distance}px, 0, 0)`
+      if (me._options.direction === 'vertical') {
+        transform = `translate3d(0, ${distance}px, 0)`
+      }
+      $item.style.webkitTransform = transform
+      $item.style.transform = transform
+    })
   }
 
   _bind () {
-    let me = this
-    this.touchstartHandler = (e) => {
+    const me = this
+    me.touchstartHandler = (e) => {
       me.stop()
       me._start.x = e.changedTouches[0].pageX
       me._start.y = e.changedTouches[0].pageY
-
-      me.$container.style['-webkit-transition'] = 'none'
-      me.$container.style.transition = 'none'
+      me._setTransition('none')
     }
-
-    this.touchmoveHandler = (e) => {
+    me.touchmoveHandler = (e) => {
       me._move.x = e.changedTouches[0].pageX
       me._move.y = e.changedTouches[0].pageY
-
-      let distance = me._move.y - me._start.y
-      let transform = 'translate3d(0, ' + (distance - me._offset) + 'px, 0)'
-
-      if (me._options.direction === 'horizontal' && Math.abs(me._move.x) > Math.abs(me._move.y)) {
-        distance = me._move.x - me._start.x
-        transform = 'translate3d(' + (distance - me._offset) + 'px, 0, 0)'
+      let distanceX = me._move.x - me._start.x
+      let distanceY = me._move.y - me._start.y
+      let distance = distanceY
+      let noScrollerY = Math.abs(distanceX) > Math.abs(distanceY)
+      if (me._options.direction === 'horizontal' && noScrollerY) {
+        distance = distanceX
+      }
+      if (((me._options.minMovingDistance && Math.abs(distance) >= me._options.minMovingDistance) || !me._options.minMovingDistance) && noScrollerY) {
+        me._setTransfrom(distance)
       }
 
-      if (((me._options.minMovingDistance && distance >= me._options.minMovingDistance) || !me._options.minMovingDistance) && Math.abs(me._move.x) > Math.abs(me._move.y)) {
-        me.$container.style['-webkit-transform'] = transform
-        me.$container.style.transform = transform
-      }
-
-      Math.abs(me._move.x) > Math.abs(me._move.y) && e.preventDefault()
+      noScrollerY && e.preventDefault()
     }
 
-    this.touchendHandler = (e) => {
+    me.touchendHandler = (e) => {
       me._end.x = e.changedTouches[0].pageX
       me._end.y = e.changedTouches[0].pageY
 
@@ -141,114 +175,150 @@ class Swiper {
         distance = me._end.x - me._start.x
       }
 
-      me._prev = me._current
+      distance = me.getDistance(distance)
+      if (distance !== 0 && me._options.minMovingDistance && Math.abs(distance) < me._options.minMovingDistance) {
+        return
+      }
       if (distance > me._options.threshold) {
-        me._current = me._current === 0 ? 0 : --me._current
+        me.move(-1)
       } else if (distance < -me._options.threshold) {
-        me._current = me._current < (me.count - 1) ? ++me._current : me._current
+        me.move(1)
+      } else {
+        me.move(0)
       }
 
-      me._show(me._current)
+      me._loopRender()
     }
 
-    this.transitionEndHandler = (e) => {
-      if (e.target !== me.$container) {
-        return false
-      }
-
-      if (me._current !== me._prev || me._goto > -1) {
-        me._activate(me._current)
-        let cb = me._eventHandlers.swiped
-        cb && cb.apply(me, [me._prev, me._current])
-        me._goto = -1
-      }
-
-      if (me._options.auto) {
-        me._auto()
-      }
-
+    me.transitionEndHandler = (e) => {
+      me._activate(me._current)
+      let cb = me._eventHandlers.swiped
+      cb && cb.apply(me, [me._prev % me.count, me._current % me.count])
+      me._auto()
+      me._loopRender()
       e.preventDefault()
     }
-
-    this.$container.addEventListener('touchstart', this.touchstartHandler, false)
-    this.$container.addEventListener('touchmove', this.touchmoveHandler, false)
-    this.$container.addEventListener('touchend', this.touchendHandler, false)
-    this.$container.addEventListener('transitionEnd', (e) => {}, false)
-    this.$container.addEventListener('webkitTransitionEnd', this.transitionEndHandler, false)
+    me.$container.addEventListener('touchstart', me.touchstartHandler, false)
+    me.$container.addEventListener('touchmove', me.touchmoveHandler, false)
+    me.$container.addEventListener('touchend', me.touchendHandler, false)
+    me.$items[1] && me.$items[1].addEventListener('webkitTransitionEnd', me.transitionEndHandler, false)
   }
 
-  _show (index) {
-    this._offset = index * this._height
-    let transform = 'translate3d(0, -' + this._offset + 'px, 0)'
-
-    if (this._options.direction === 'horizontal') {
-      this._offset = index * this._width
-      transform = 'translate3d(-' + this._offset + 'px, 0, 0)'
+  _loopTwoItems () {
+    // issue #596 (support when onlt two)
+    if (this.count === 2) {
+      let div = document.createElement('div')
+      let $item
+      for (let i = this.$items.length - 1; i >= 0; i--) {
+        div.innerHTML = this.$items[i].outerHTML
+        $item = div.querySelector(this._options.item)
+        $item.classList.add(`${this._options.item.replace('.', '')}-clone`)
+        this.$container.appendChild($item)
+      }
+      this.realCount = 4
     }
+  }
 
-    let duration = this._options.duration + 'ms'
+  _loopRender () {
+    const me = this
+    if (me._loop()) {
+      // issue #507 (delete cloneNode)
+      if (me._offset[me._offset.length - 1] === 0) {
+        me.$container.appendChild(me.$items[0])
+        me._loopEvent(1)
+      } else if (me._offset[0] === 0) {
+        me.$container.insertBefore(me.$items[me.$items.length - 1], me.$container.firstChild)
+        me._loopEvent(-1)
+      }
+    }
+  }
 
-    this.$container.style['-webkit-transition'] = duration
-    this.$container.style.transition = duration
-    this.$container.style['-webkit-transform'] = transform
-    this.$container.style.transform = transform
+  _loopEvent (num) {
+    const me = this
+    me._itemDestoy()
+    me.$items = me.$container.querySelectorAll(me._options.item)
+    me.$items[1] && me.$items[1].addEventListener('webkitTransitionEnd', me.transitionEndHandler, false)
+    me._movePosition(num)
+    me._setOffset()
+    me._setTransfrom()
+  }
+
+  getDistance (distance) {
+    if (this._loop()) {
+      return distance
+    } else {
+      if (distance > 0 && this._current === 0) {
+        return 0
+      } else if (distance < 0 && this._current === this.realCount - 1) {
+        return 0
+      } else {
+        return distance
+      }
+    }
+  }
+
+  _moveIndex (num) {
+    if (num !== 0) {
+      this._prev = this._current
+      this._current += this.realCount
+      this._current += num
+      this._current %= this.realCount
+    }
   }
 
   _activate (index) {
     let clazz = this._options.activeClass
     Array.prototype.forEach.call(this.$items, ($item, key) => {
       $item.classList.remove(clazz)
-      if (index === key) {
+      if (index === Number($item.dataset.index)) {
         $item.classList.add(clazz)
       }
     })
   }
 
   go (index) {
-    if (index < 0 || index > this.count - 1 || index === this._current) {
-      return
-    }
+    const me = this
+    me.stop()
 
-    if (index === 0) {
-      this._current = 0
-      this._prev = 0
-    } else {
-      this._current = index
-      this._prev = index - 1
-    }
+    index = index || 0
+    index += this.realCount
+    index = index % this.realCount
+    index = this._position.indexOf(index) - this._position.indexOf(this._current)
 
-    this._goto = index
-    this._show(this._current)
-
+    me._moveIndex(index)
+    me._setOffset()
+    me._setTransition()
+    me._setTransfrom()
+    me._auto()
     return this
   }
 
   next () {
-    if (this._current >= this.count - 1) {
-      this._current = 0
-      this._show(0)
-      return this
-    }
-    this._prev = this._current
-    this._show(++this._current)
+    this.move(1)
+    return this
+  }
+
+  move (num) {
+    this.go(this._current + num)
     return this
   }
 
   on (event, callback) {
     if (this._eventHandlers[event]) {
-      console.error('event ' + event + ' is already register')
+      console.error(`[swiper] event ${event} is already register`)
     }
     if (typeof callback !== 'function') {
-      console.error('parameter callback must be a function')
+      console.error('[swiper] parameter callback must be a function')
     }
     this._eventHandlers[event] = callback
     return this
   }
 
-  _setTransfrom (x = 0) {
-    this.$container.style['-webkit-transform'] = this.$container.style.transform = `translate3d(${x}px, 0, 0)`
+  _itemDestoy () {
+    for (let item of this.$items) {
+      item.removeEventListener('webkitTransitionEnd', this.transitionEndHandler, false)
+    }
   }
-
   destroy () {
     this.stop()
     this._current = 0
@@ -257,16 +327,15 @@ class Swiper {
     this.$container.removeEventListener('touchstart', this.touchstartHandler, false)
     this.$container.removeEventListener('touchmove', this.touchmoveHandler, false)
     this.$container.removeEventListener('touchend', this.touchendHandler, false)
-    this.$container.removeEventListener('webkitTransitionEnd', this.transitionEndHandler, false)
+    this._itemDestoy()
+    // remove clone item (used by loop only 2)
+    if (this._options.loop && this.count === 2) {
+      let $item = this.$container.querySelector(`${this._options.item}-clone`)
+      $item && this.$container.removeChild($item)
+      $item = this.$container.querySelector(`${this._options.item}-clone`)
+      $item && this.$container.removeChild($item)
+    }
   }
-
-}
-
-function extend (target, source) {
-  for (let key in source) {
-    target[key] = source[key]
-  }
-  return target
 }
 
 export default Swiper

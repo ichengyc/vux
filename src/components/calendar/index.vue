@@ -12,12 +12,13 @@
     :highlight-weekend="highlightWeekend"
     :return-six-rows="returnSixRows"
     :hide-header="hideHeader"
-    :hideWeek-list="hideWeekList"
+    :hide-week-list="hideWeekList"
     :replace-text-list="replaceTextList"
     :weeks-list="weeksList"
     :custom-slot-fn="customSlotFn"
     :render-on-value-change="renderOnValueChange"
     :disable-past="disablePast"
+    :disable-future="disableFuture"
     ></inline-calendar>
   </popup>
 </template>

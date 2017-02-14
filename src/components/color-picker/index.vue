@@ -12,8 +12,7 @@
 
 <script>
 import Icon from '../icon'
-import Flexbox from '../flexbox'
-import FlexboxItem from '../flexbox-item'
+import { Flexbox, FlexboxItem } from '../flexbox'
 
 const sizeMap = {
   'large': 40,
@@ -35,10 +34,7 @@ export default {
       type: String,
       default: 'large'
     },
-    value: {
-      type: String,
-      twoWay: true
-    }
+    value: String
   },
   computed: {
     width () {
@@ -54,7 +50,9 @@ export default {
 }
 </script>
 
-<style>
+<style lang="less">
+@import '../../styles/weui/icon/weui_icon_font';
+
 .vux-color-box {
   text-align: center;
 }
@@ -67,7 +65,7 @@ export default {
   box-sizing: border-box;
   position: relative
 }
-.vux-color-checked:before {
+.vux-color-checked.weui_icon_success_no_circle:before {
   color: #fff;
 }
 .vux-color-checked {
